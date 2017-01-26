@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/content_fuzz_ball_score"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context="com.qlik.fuzzballscore.FuzzBallScore"
+    tools:showIn="@layout/activity_fuzz_ball_score">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:id="@+id/main_vert">
+
+        <TextView
+            android:text="@string/game_instance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView"
+            android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
+
+        <DatePicker
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/datePicker"
+            android:calendarViewShown="false"
+            android:datePickerMode="spinner" />
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1">
+
+                <TextView
+                    android:text="Team1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/text_team1"
+                    android:layout_weight="1"
+                    android:textAlignment="center" />
+
+                <Spinner
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/spinner"
+                    android:layout_weight="1"
+                    android:entries="@array/player_array" />
+
+                <Spinner
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/spinner2"
+                    android:layout_weight="1"
+                    android:entries="@array/player_array" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1">
+
+                <TextView
+                    android:text="Team2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/text_team2"
+                    android:layout_weight="1"
+                    android:textAlignment="center" />
+
+                <Spinner
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/spinner3"
+                    android:layout_weight="1"
+                    android:entries="@array/player_array" />
+
+                <Spinner
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/spinner4"
+                    android:layout_weight="1"
+                    android:entries="@array/player_array" />
+            </LinearLayout>
+
+
+        </LinearLayout>
+        <TextView
+            android:layout_width="wrap_content"
+            android:text="Score"
+            android:layout_weight="0"
+            android:layout_height="wrap_content" />
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:text="10"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView6"
+            android:textAppearance="@style/TextAppearance.AppCompat.Display1" />
+
+        <SeekBar
+            style="@style/Widget.AppCompat.SeekBar.Discrete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="10"
+            android:progress="5"
+            android:id="@+id/score_seekbar"
+            android:layout_weight="1" />
+
+        <TextView
+            android:text="8"
+            android:layout_width="37dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/text_score"
+            android:textAppearance="@style/TextAppearance.AppCompat.Display1"
+            android:textAlignment="textEnd" />
+    </LinearLayout>
+
+
+        <ImageButton
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:srcCompat="@android:drawable/ic_menu_upload"
+            android:id="@+id/imageButton2"
+            android:layout_weight="1" />
+
+    </LinearLayout>
+
+</RelativeLayout>
