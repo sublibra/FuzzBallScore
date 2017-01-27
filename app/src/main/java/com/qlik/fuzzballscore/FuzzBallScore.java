@@ -12,18 +12,16 @@ import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.text.TextUtils;
-import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.DatePicker;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.Spinner;
@@ -40,6 +38,7 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.ExponentialBackOff;
 import com.google.api.services.sheets.v4.SheetsScopes;
+import com.google.api.services.sheets.v4.model.AppendValuesResponse;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
 import java.io.IOException;
@@ -60,10 +59,11 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
     static final int REQUEST_PERMISSION_GET_ACCOUNTS = 1003;
 
     private static final String PREF_ACCOUNT_NAME = "accountName";
-    private static final String[] SCOPES = { SheetsScopes.SPREADSHEETS_READONLY };
+    private static final String[] SCOPES = { SheetsScopes.SPREADSHEETS };
 
-    private TextView mOutputText;
-    private Button mCallApiButton;
+    private static final String SPREADSHEET_KEY = "";
+
+    private ImageButton uploadDataButton;
     ProgressDialog mProgress;
 
     @Override
@@ -73,42 +73,21 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-
         initSeekbar();
 
         LinearLayout mainVert = (LinearLayout) findViewById(R.id.main_vert);
-
-
-
-        mOutputText = new TextView(this);
-        mOutputText.setVerticalScrollBarEnabled(true);
-        mOutputText.setMovementMethod(new ScrollingMovementMethod());
-        mOutputText.setText("Click the ");
-        mainVert.addView(mOutputText);
-
         mProgress = new ProgressDialog(this);
         mProgress.setMessage("Calling Google Sheets API ...");
 
-        mCallApiButton = new Button(this);
-        mCallApiButton.setText("CALL");
-        mCallApiButton.setOnClickListener(new View.OnClickListener() {
+        uploadDataButton = (ImageButton) findViewById(R.id.uploadDataButton);
+        uploadDataButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mCallApiButton.setEnabled(false);
-                mOutputText.setText("");
+                uploadDataButton.setEnabled(false);
                 getResultsFromApi();
-                mCallApiButton.setEnabled(true);
+                uploadDataButton.setEnabled(true);
             }
         });
-        mainVert.addView(mCallApiButton);
 
         // Initialize credentials and service object.
         mCredential = GoogleAccountCredential.usingOAuth2(
@@ -119,6 +98,9 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
 
     private void initSeekbar(){
         SeekBar seekBar = (SeekBar) findViewById(R.id.score_seekbar);
+        TextView tw = (TextView) findViewById(R.id.text_score);
+        tw.setText(String.valueOf(seekBar.getProgress()));
+
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 
             @Override
@@ -139,6 +121,11 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
         });
     }
 
+    private void snackbarMessage(String message) {
+        Snackbar.make(findViewById(R.id.toolbar), message,
+                Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -156,12 +143,12 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            snackbarMessage("Not implemented yet...");
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
-
 
     /**
      * Attempt to call the API, after verifying that all the preconditions are
@@ -176,7 +163,7 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
         } else if (mCredential.getSelectedAccountName() == null) {
             chooseAccount();
         } else if (! isDeviceOnline()) {
-            mOutputText.setText("No network connection available.");
+            snackbarMessage("No network connection available");
         } else {
             new MakeRequestTask(mCredential).execute();
         }
@@ -234,9 +221,8 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
         switch(requestCode) {
             case REQUEST_GOOGLE_PLAY_SERVICES:
                 if (resultCode != RESULT_OK) {
-                    mOutputText.setText(
-                            "This app requires Google Play Services. Please install " +
-                                    "Google Play Services on your device and relaunch this app.");
+                    snackbarMessage("This app requires Google Play Services. Please install " +
+                            "Google Play Services on your device and relaunch this app.");
                 } else {
                     getResultsFromApi();
                 }
@@ -385,7 +371,8 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
         @Override
         protected List<String> doInBackground(Void... params) {
             try {
-                return getDataFromApi();
+                getDataFromApi();
+                return null;
             } catch (Exception e) {
                 mLastError = e;
                 cancel(true);
@@ -394,33 +381,44 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
         }
 
         /**
-         * Fetch a list of names and majors of students in a sample spreadsheet:
-         * https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
-         * @return List of names and majors
+         * Read add data from the UI and send to Google Doc as a new row
          * @throws IOException
          */
-        private List<String> getDataFromApi() throws IOException {
-            String spreadsheetId = "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms";
-            String range = "Class Data!A2:E";
-            List<String> results = new ArrayList<String>();
-            ValueRange response = this.mService.spreadsheets().values()
-                    .get(spreadsheetId, range)
-                    .execute();
-            List<List<Object>> values = response.getValues();
-            if (values != null) {
-                results.add("Name, Major");
-                for (List row : values) {
-                    results.add(row.get(0) + ", " + row.get(4));
-                }
-            }
-            return results;
+        private void getDataFromApi() throws IOException {
+            String spreadsheetId = SPREADSHEET_KEY;
+            String range = "Data!A2:G";
+            ValueRange row = new ValueRange();
+            List<List<Object>> values = new ArrayList<>();
+            List<Object> value = new ArrayList<>();
+
+            DatePicker datePicker = (DatePicker) findViewById(R.id.datePicker);
+            value.add(String.valueOf(datePicker.getYear()) + "-" +
+                    String.valueOf(datePicker.getMonth() + 1) + "-" + // month 0-11
+                    String.valueOf(datePicker.getDayOfMonth()));
+            Spinner spinner1 = (Spinner) findViewById(R.id.spinner);
+            Spinner spinner2 = (Spinner) findViewById(R.id.spinner2);
+            Spinner spinner3 = (Spinner) findViewById(R.id.spinner3);
+            Spinner spinner4 = (Spinner) findViewById(R.id.spinner4);
+            value.add(spinner1.getSelectedItem().toString());
+            value.add(spinner2.getSelectedItem().toString());
+            value.add(spinner3.getSelectedItem().toString());
+            value.add(spinner4.getSelectedItem().toString());
+            // Team 1
+            value.add(10);
+            // Team 2
+            TextView textView = (TextView) findViewById(R.id.text_score);
+            // Store score as int in spreadsheet
+            value.add(Integer.parseInt((String) textView.getText()));
+            values.add(value);
+            row.setMajorDimension("ROWS");
+            row.setValues(values);
+            this.mService.spreadsheets().values().append(spreadsheetId, range, row).setValueInputOption("RAW").execute();
+
+
         }
-
-
 
         @Override
         protected void onPreExecute() {
-            mOutputText.setText("");
             mProgress.show();
         }
 
@@ -428,10 +426,9 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
         protected void onPostExecute(List<String> output) {
             mProgress.hide();
             if (output == null || output.size() == 0) {
-                mOutputText.setText("No results returned.");
+                snackbarMessage("No results returned");
             } else {
-                output.add(0, "Data retrieved using the Google Sheets API:");
-                mOutputText.setText(TextUtils.join("\n", output));
+                snackbarMessage("Data retrieved from Google sheets: " + output);
             }
         }
 
@@ -448,14 +445,13 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
                             ((UserRecoverableAuthIOException) mLastError).getIntent(),
                             FuzzBallScore.REQUEST_AUTHORIZATION);
                 } else {
-                    mOutputText.setText("The following error occurred:\n"
-                            + mLastError.getMessage());
+                    snackbarMessage("Error occurred: " + mLastError.getMessage());
                     Log.d("WTKFuzzBall", mLastError.toString());
 
 
                 }
             } else {
-                mOutputText.setText("Request cancelled.");
+                snackbarMessage("Google sheet request cancelled");
             }
         }
     }
