@@ -19,7 +19,6 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -38,7 +37,6 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.ExponentialBackOff;
 import com.google.api.services.sheets.v4.SheetsScopes;
-import com.google.api.services.sheets.v4.model.AppendValuesResponse;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
 import java.io.IOException;
@@ -49,7 +47,7 @@ import java.util.List;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
-public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.PermissionCallbacks {
+public class FossBallScore extends AppCompatActivity implements EasyPermissions.PermissionCallbacks {
 
     GoogleAccountCredential mCredential;
 
@@ -62,6 +60,7 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
     private static final String[] SCOPES = { SheetsScopes.SPREADSHEETS };
 
     private static final String SPREADSHEET_KEY = "";
+
 
     private ImageButton uploadDataButton;
     ProgressDialog mProgress;
@@ -98,15 +97,24 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
 
     private void initSeekbar(){
         SeekBar seekBar = (SeekBar) findViewById(R.id.score_seekbar);
-        TextView tw = (TextView) findViewById(R.id.text_score);
-        tw.setText(String.valueOf(seekBar.getProgress()));
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                TextView tw = (TextView) findViewById(R.id.text_score);
-                tw.setText(String.valueOf(progress));
+                TextView team1Score = (TextView) findViewById(R.id.team1score);
+                TextView team2Score = (TextView) findViewById(R.id.team2score);
+                int team1;
+                int team2;
+                if(progress>10){
+                    team2=10;
+                    team1=progress-10;
+                } else {
+                    team1=10;
+                    team2=progress;
+                }
+                team1Score.setText(String.valueOf(team1));
+                team2Score.setText(String.valueOf(team2));
             }
 
             @Override
@@ -341,7 +349,7 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
             final int connectionStatusCode) {
         GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
         Dialog dialog = apiAvailability.getErrorDialog(
-                FuzzBallScore.this,
+                FossBallScore.this,
                 connectionStatusCode,
                 REQUEST_GOOGLE_PLAY_SERVICES);
         dialog.show();
@@ -403,12 +411,14 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
             value.add(spinner2.getSelectedItem().toString());
             value.add(spinner3.getSelectedItem().toString());
             value.add(spinner4.getSelectedItem().toString());
-            // Team 1
-            value.add(10);
-            // Team 2
-            TextView textView = (TextView) findViewById(R.id.text_score);
+
             // Store score as int in spreadsheet
-            value.add(Integer.parseInt((String) textView.getText()));
+            TextView teamScore1 = (TextView) findViewById(R.id.team1score);
+            value.add(Integer.parseInt((String) teamScore1.getText()));
+            TextView teamScore2 = (TextView) findViewById(R.id.team2score);
+            value.add(Integer.parseInt((String) teamScore2.getText()));
+
+            // Add all values in value array
             values.add(value);
             row.setMajorDimension("ROWS");
             row.setValues(values);
@@ -443,7 +453,7 @@ public class FuzzBallScore extends AppCompatActivity implements EasyPermissions.
                 } else if (mLastError instanceof UserRecoverableAuthIOException) {
                     startActivityForResult(
                             ((UserRecoverableAuthIOException) mLastError).getIntent(),
-                            FuzzBallScore.REQUEST_AUTHORIZATION);
+                            FossBallScore.REQUEST_AUTHORIZATION);
                 } else {
                     snackbarMessage("Error occurred: " + mLastError.getMessage());
                     Log.d("WTKFuzzBall", mLastError.toString());
