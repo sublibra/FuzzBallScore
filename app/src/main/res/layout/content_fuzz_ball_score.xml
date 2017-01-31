@@ -136,6 +136,7 @@
                 android:id="@+id/team2score"
                 android:textAppearance="@style/TextAppearance.AppCompat.Display1"
                 android:textAlignment="textEnd" />
+
         </LinearLayout>
 
 

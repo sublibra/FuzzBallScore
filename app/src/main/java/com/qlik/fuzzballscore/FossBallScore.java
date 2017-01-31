@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -37,6 +38,7 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.ExponentialBackOff;
 import com.google.api.services.sheets.v4.SheetsScopes;
+import com.google.api.services.sheets.v4.model.AppendValuesResponse;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
 import java.io.IOException;
@@ -59,8 +61,9 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
     private static final String PREF_ACCOUNT_NAME = "accountName";
     private static final String[] SCOPES = { SheetsScopes.SPREADSHEETS };
 
-    private static final String SPREADSHEET_KEY = "";
+    private static final String APP_TAG = "WTKFossBall";
 
+    private static final String SPREADSHEET_KEY = "";
 
     private ImageButton uploadDataButton;
     ProgressDialog mProgress;
@@ -74,7 +77,6 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
 
         initSeekbar();
 
-        LinearLayout mainVert = (LinearLayout) findViewById(R.id.main_vert);
         mProgress = new ProgressDialog(this);
         mProgress.setMessage("Calling Google Sheets API ...");
 
@@ -97,7 +99,6 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
 
     private void initSeekbar(){
         SeekBar seekBar = (SeekBar) findViewById(R.id.score_seekbar);
-
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 
             @Override
@@ -127,6 +128,8 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
                 // Not implemented
             }
         });
+
+        seekBar.setProgress(5); // setup correct numbers in score labels
     }
 
     private void snackbarMessage(String message) {
@@ -144,15 +147,17 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            snackbarMessage("Not implemented yet...");
-            return true;
+        switch (id){
+            case R.id.action_settings:
+                snackbarMessage("Not implemented yet...");
+                return true;
+            case R.id.action_openspread:
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://docs.google.com/spreadsheets/d/" + SPREADSHEET_KEY ));
+                startActivity(browserIntent);
+                return true;
         }
 
         return super.onOptionsItemSelected(item);
@@ -285,7 +290,7 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
      */
     @Override
     public void onPermissionsGranted(int requestCode, List<String> list) {
-        Log.d("WTKFuzzBall", "Access granted: " + list.toString());
+        Log.d(APP_TAG, "Access granted: " + list.toString());
     }
 
     /**
@@ -297,7 +302,7 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
      */
     @Override
     public void onPermissionsDenied(int requestCode, List<String> list) {
-        Log.d("WTKFuzzBall", list.toString());
+        Log.d(APP_TAG, list.toString());
     }
 
     /**
@@ -359,7 +364,7 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
      * An asynchronous task that handles the Google Sheets API call.
      * Placing the API calls in their own task ensures the UI stays responsive.
      */
-    private class MakeRequestTask extends AsyncTask<Void, Void, List<String>> {
+    private class MakeRequestTask extends AsyncTask<Void, Void, String> {
         private com.google.api.services.sheets.v4.Sheets mService = null;
         private Exception mLastError = null;
 
@@ -368,7 +373,7 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
             JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
             mService = new com.google.api.services.sheets.v4.Sheets.Builder(
                     transport, jsonFactory, credential)
-                    .setApplicationName("WTK Fuzzball Scores")
+                    .setApplicationName("WTK Fossball Scores")
                     .build();
         }
 
@@ -377,10 +382,9 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
          * @param params no parameters needed for this task.
          */
         @Override
-        protected List<String> doInBackground(Void... params) {
+        protected String doInBackground(Void... params) {
             try {
-                getDataFromApi();
-                return null;
+                return getDataFromApi();
             } catch (Exception e) {
                 mLastError = e;
                 cancel(true);
@@ -392,7 +396,7 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
          * Read add data from the UI and send to Google Doc as a new row
          * @throws IOException
          */
-        private void getDataFromApi() throws IOException {
+        private String getDataFromApi() throws IOException {
             String spreadsheetId = SPREADSHEET_KEY;
             String range = "Data!A2:G";
             ValueRange row = new ValueRange();
@@ -400,13 +404,15 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
             List<Object> value = new ArrayList<>();
 
             DatePicker datePicker = (DatePicker) findViewById(R.id.datePicker);
-            value.add(String.valueOf(datePicker.getYear()) + "-" +
+            String date = (String.valueOf(datePicker.getYear()) + "-" +
                     String.valueOf(datePicker.getMonth() + 1) + "-" + // month 0-11
                     String.valueOf(datePicker.getDayOfMonth()));
+            value.add(date);
             Spinner spinner1 = (Spinner) findViewById(R.id.spinner);
             Spinner spinner2 = (Spinner) findViewById(R.id.spinner2);
             Spinner spinner3 = (Spinner) findViewById(R.id.spinner3);
             Spinner spinner4 = (Spinner) findViewById(R.id.spinner4);
+
             value.add(spinner1.getSelectedItem().toString());
             value.add(spinner2.getSelectedItem().toString());
             value.add(spinner3.getSelectedItem().toString());
@@ -422,9 +428,12 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
             values.add(value);
             row.setMajorDimension("ROWS");
             row.setValues(values);
-            this.mService.spreadsheets().values().append(spreadsheetId, range, row).setValueInputOption("RAW").execute();
-
-
+            AppendValuesResponse appendValuesResponse = this.mService.spreadsheets().values().
+                    append(spreadsheetId, range, row).setValueInputOption("RAW").execute();
+            String userResponse = "Score uploaded: " + date + " "
+                    +  teamScore1.getText() + "-" + teamScore2.getText()
+                    + " at " + appendValuesResponse.getUpdates().getUpdatedRange();
+            return userResponse;
         }
 
         @Override
@@ -432,13 +441,12 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
             mProgress.show();
         }
 
-        @Override
-        protected void onPostExecute(List<String> output) {
+        protected void onPostExecute(String output) {
             mProgress.hide();
-            if (output == null || output.size() == 0) {
+            if (output == null || output.length() == 0) {
                 snackbarMessage("No results returned");
             } else {
-                snackbarMessage("Data retrieved from Google sheets: " + output);
+                snackbarMessage("Result: " + output);
             }
         }
 
@@ -455,8 +463,8 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
                             ((UserRecoverableAuthIOException) mLastError).getIntent(),
                             FossBallScore.REQUEST_AUTHORIZATION);
                 } else {
-                    snackbarMessage("Error occurred: " + mLastError.getMessage());
-                    Log.d("WTKFuzzBall", mLastError.toString());
+                    snackbarMessage("API request cancelled: " + mLastError.getMessage());
+                    Log.d("WTKFossBall", mLastError.toString());
 
 
                 }
