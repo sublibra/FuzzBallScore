@@ -22,7 +22,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.DatePicker;
 import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -51,19 +50,23 @@ import pub.devrel.easypermissions.EasyPermissions;
 
 public class FossBallScore extends AppCompatActivity implements EasyPermissions.PermissionCallbacks {
 
+
     GoogleAccountCredential mCredential;
 
     static final int REQUEST_ACCOUNT_PICKER = 1000;
     static final int REQUEST_AUTHORIZATION = 1001;
     static final int REQUEST_GOOGLE_PLAY_SERVICES = 1002;
     static final int REQUEST_PERMISSION_GET_ACCOUNTS = 1003;
+    static final int REQUEST_GOOGLE_DOC_AUTH = 2000;
 
     private static final String PREF_ACCOUNT_NAME = "accountName";
     private static final String[] SCOPES = { SheetsScopes.SPREADSHEETS };
 
     private static final String APP_TAG = "WTKFossBall";
 
+
     private static final String SPREADSHEET_KEY = "";
+    private static final String GOOGLE_DOC_ADMIN_MAIL = "";
 
     private ImageButton uploadDataButton;
     ProgressDialog mProgress;
@@ -145,13 +148,28 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
         return true;
     }
 
+    /**
+     * Request access to the Google document
+     */
+    private void requestGoogleDocumentAccess(){
+        Intent intent = new Intent(Intent.ACTION_SENDTO);
+        intent.setData(Uri.parse("mailto:"));
+        intent.putExtra(Intent.EXTRA_EMAIL, GOOGLE_DOC_ADMIN_MAIL);
+        intent.putExtra(Intent.EXTRA_SUBJECT, "Please provide access to the " + APP_TAG
+                + " Google doc");
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(intent, REQUEST_GOOGLE_DOC_AUTH);
+        }
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
         switch (id){
-            case R.id.action_settings:
-                snackbarMessage("Not implemented yet...");
+            case R.id.action_request_access:
+                requestGoogleDocumentAccess();
+                snackbarMessage("Requesting access to " + APP_TAG + " document");
                 return true;
             case R.id.action_openspread:
                 Intent browserIntent = new Intent(Intent.ACTION_VIEW,
@@ -259,6 +277,13 @@ public class FossBallScore extends AppCompatActivity implements EasyPermissions.
             case REQUEST_AUTHORIZATION:
                 if (resultCode == RESULT_OK) {
                     getResultsFromApi();
+                }
+                break;
+            case REQUEST_GOOGLE_DOC_AUTH:
+                if (resultCode == 0) {
+                    snackbarMessage("Request for access sent.");
+                } else {
+                    snackbarMessage("Unable to send Google doc request");
                 }
                 break;
         }
